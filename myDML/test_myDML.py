@@ -33,7 +33,7 @@ if  __name__ == '__main__':
     test_X = moons_test[0] # instances of testing data
     test_Y = moons_test[1] # labels of testing data
 
-    print(moons_train)
+    #print(moons_train)
     #print(moons_test)
     # training
     try:
@@ -51,7 +51,7 @@ if  __name__ == '__main__':
             for j in range(train_X.shape[0]):
                 distance_vector[j] = myDML.Euclidean_distance(test_X[i], train_X[j])
             labels_of_K_neighbor = train_Y[distance_vector.argsort()[0:K]]  #取距离测试样本最近的前k个训练样本的label
-            predict_label[i] = collections.Counter(labels_of_K_neighbor).most_common(n=1)[0][0]   #
+            predict_label[i] = collections.Counter(labels_of_K_neighbor).most_common(n=1)[0][0]   #返回一组键值对，取第一组第一个（这里n=1,只有一组）
         test_error = np.sum(predict_label != test_Y)/test_Y.shape[0]
         print('Euclidean_distance+knn(k='+str(K)+'): \t%f' % test_error)
         

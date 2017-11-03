@@ -43,9 +43,10 @@ if __name__ == '__main__':
     # print(a)
     # print(zeros([3,3]))
 
-    # a = ones([2, 2, 1, 1])
-    # print(a)
-    # print(a.shape)
+    a = np.ones(4)
+    print(a)
+    print("---------------------")
+    print(np.transpose([a]))
     # moons_train = array([array([[0,3],
     #                            [4,0],
     #                            [0,1],
@@ -62,5 +63,5 @@ if __name__ == '__main__':
     #                            'a',
     #                            'b',
     #                            'b'])])
-    myDML.train(moons_train)
+    #myDML.train(moons_train)
 

@@ -10,6 +10,7 @@ import time
 from threading import Thread
 import functools
 from nca import nca
+from randnca import randnca
 
 # (global) variable definition here
 TRAINING_TIME_LIMIT = 60*10
@@ -46,8 +47,9 @@ def timeout(timeout):
 @timeout(TRAINING_TIME_LIMIT)
 def train(traindata):
     global ncas
-    ncas = nca(traindata)
+    ncas = randnca(traindata)
     ncas.train()
+
     # 在此处完成你的训练函数，注意训练时间不要超过TRAINING_TIME_LIMIT(秒)。
     #time.sleep(1) # 这行仅用于测试训练超时，运行时请删除这行，否则你的TRAINING_TIME_LIMIT将-1s。
     return 0
@@ -57,7 +59,8 @@ def Euclidean_distance(inst_a, inst_b):
 
 def distance(inst_a, inst_b):
     d = inst_a - inst_b
-    dist = np.dot(np.dot(d,ncas.get_m()),d.T)
+    #print(ncas.get_m())
+    dist = np.dot(np.dot(d,ncas.get_m()),np.transpose([d]))
     return dist
 
 # main program here

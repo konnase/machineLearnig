@@ -36,8 +36,11 @@ if  __name__ == '__main__':
         test_X = LR_test[0] # instances of testing data
         test_Y = LR_test[1] # labels of testing data
         
+        # for i in range(len(train_Y)):
+        #     print(train_X[i])
         # training
         try:
+            #myDML.train(LR_train)
             myDML.train(LR_train)
         except Exception as e:
             print(e)
@@ -54,7 +57,8 @@ if  __name__ == '__main__':
                 labels_of_K_neighbor = train_Y[distance_vector.argsort()[0:K]]
                 predict_label[i] = collections.Counter(labels_of_K_neighbor).most_common(n=1)[0][0]
             test_error_baseline.append(np.sum(predict_label != test_Y)/test_Y.shape[0])
-            
+            print("-----------------------")
+
             # testing with your distance
             predict_label = np.zeros(test_X.shape[0])
             for i in range(test_X.shape[0]):
