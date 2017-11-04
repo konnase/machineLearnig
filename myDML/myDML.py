@@ -9,7 +9,6 @@ import numpy as np
 import time
 from threading import Thread
 import functools
-from nca import nca
 from randnca import randnca
 
 # (global) variable definition here
@@ -48,7 +47,7 @@ def timeout(timeout):
 def train(traindata):
     global ncas
     ncas = randnca(traindata)
-    ncas.train()
+    ncas.train(50000)
 
     # 在此处完成你的训练函数，注意训练时间不要超过TRAINING_TIME_LIMIT(秒)。
     #time.sleep(1) # 这行仅用于测试训练超时，运行时请删除这行，否则你的TRAINING_TIME_LIMIT将-1s。

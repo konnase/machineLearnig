@@ -37,7 +37,7 @@ class randnca:
         #     print(self.distance[i][p])
         #self.distanceI[i] = np.sum(self.distance[i]) - self.distance[i][i]
         self.distanceI[i] = sum_dis
-        print("距离之和：%f" % self.distanceI[i])
+        #print("距离之和：%f" % self.distanceI[i])
 
     #i选择j并继承其标签的概率
     def p_ij(self, i, j):
@@ -76,13 +76,13 @@ class randnca:
         deriv_a = self.p_i(i) * sum_k - sum_j
         return 2 * np.dot(self.A, deriv_a)
 
-    def train(self,count=100000,rate=0.05):
+    def train(self,count=5000, rate=0.03):
         for i in range(count):
-            print("%d %d", i, i % len(self.train_Lable))
-            rand = random.randint(0,len(self.train_Lable)-1)
+            print("iterator: %d %d" % (i, i % len(self.train_Lable)))
+            rand = random.randint(0, len(self.train_Lable)-1)
             #随机取一个样本进行度量
             self.distance_between_i_and_j(rand)
-            print(self.A.shape, rand)
+            #print(self.A.shape, rand)
             self.A += rate * self.derivative_a(i % len(self.train_Lable), rand)
     def get_m(self):
         #print(np.dot(self.A.T,self.A))
