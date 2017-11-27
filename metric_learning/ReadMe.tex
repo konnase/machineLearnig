@@ -1,0 +1,118 @@
+\documentclass[a4paper,UTF8]{article}
+\usepackage{ctex}
+\usepackage[margin=1.25in]{geometry}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsthm}
+%\usepackage[thmmarks, amsmath, thref]{ntheorem}
+\theoremstyle{definition}
+\newtheorem*{solution}{Solution}
+\newtheorem*{prove}{Proof}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{enumerate}
+\usepackage{framed} 
+\renewcommand\refname{参考文献}
+
+%--
+
+%--
+\begin{document}
+\title{实验1. 度量学习实验报告}
+\author{MF1733034，李青坪，\url{lqp19940918@163.com}}
+\maketitle
+
+\section*{综述}
+	在机器学习领域中，如何选择合适的距离度量准则一直都是一个重要而困难的问题。因为度量函数的选择非常依赖于学习任务本身，并且度量函数的好坏会直接影响到学习算法的性能。为了解决这一问题，我们可以尝试通过学习得到合适的度量函数。距离度量学习(Distance Metric Learning)的目标是学习得到合适的度量函数，使得在该度量下更容易找出样本之间潜在的联系，进而提高那些基于相似度的学习器的性能。本实验的目的是掌握距离度量学习的基本思路方法并应用到真实场景中去。
+
+\section*{任务1}
+	\subsection*{度量函数学习目标}
+		根据马氏距离：
+		$$dist_{mah}^2(\textbf{x}_i,\textbf{x}_j) = (\textbf{x}_i-\textbf{x}_j)^T \textbf{M} (\textbf{x}_i-\textbf{x}_j) = ||\textbf{x}_i-\textbf{x}_j||_\textbf{M}^2 $$
+		
+		其中的\textbf{M}称为“度量矩阵”，而度量学习就是对\textbf{M}进行学习。为了保持距离非负且对称，\textbf{M}必须是(半)正定对称矩阵。通过输入训练样本，使矩阵\textbf{M}能更准确地度量测试样本与其他样本之间的距离。本任务中，进行预测的时候便可以通过马氏距离计算样本之间的距离，使用近邻分类器对样本进行分类，矩阵\textbf{M}训练地越好，近邻分类器对样本标签的预测就越好。
+	\subsection*{优化算法}
+		本次任务采用近邻成分分析\cite{Roweis2004Neighbourhood} (Neighbourhood Component Analysis，简称NCA)算法优化度量矩阵\textbf{M}。如果我们使用矩阵\textbf{A}作为一个变换矩阵，我们可以有效地学习度量矩阵$\textbf{M}=\textbf{A}^T\textbf{A}$,使得
+		$$d(\textbf{x},\textbf{y})=(\textbf{x}-\textbf{y})^T \textbf{M} (\textbf{x}-\textbf{y})=(\textbf{Ax}-\textbf{Ay})^T(\textbf{Ax}-\textbf{Ay})$$
+		
+		
+		近邻分类器在进行判别时通常使用多数投票法，邻域中的每个样本投1票，邻域外的样本投0票。不妨将其替换为概率投票法。对任意的样本$\textbf{x}_j$ ，它对$\textbf{x}_i$ 分类结果影响的概率为
+		\begin{align}
+		p_{ij}=\frac{exp(-||\textbf{Ax}_i-\textbf{Ax}_j||^2)}{\sum_{k\not=c}exp(-||\textbf{Ax}_i-\textbf{Ax}_k||^2)} \quad  ,\quad   p_{ii}=0 
+		\end{align}
+		当i=j时，$p_{ij}$最大。显然，$\textbf{x}_j$对$\textbf{x}_i$的影响随着它们之间的距离的增大而减小，若以留一法(LOO)正确率的最大化为目标，则可计算$\textbf{x}_i$的留一法正确率，即它被除自身之外的所有样本正确分类的概率为
+		\begin{align}
+		p_i=\sum_{j\in C_i}p_{ij} 
+		\end{align}
+		$C_i$表示与$\textbf{x}_i$属于相同类别的样本的下标集合。整个样本被正确分类的概率如下
+		\begin{align}
+		f(\textbf{A})=\sum_i \sum_{i\in C_i}=\sum_ip_i
+		\end{align}
+		我们希望f尽可能的大。对f求偏导即产生了用于学习的梯度规则
+		\begin{align}
+		\frac{\partial f}{\partial \textbf{A}}=2\textbf{A}\sum_i \bigg(p_i\sum_k p_{ik}\textbf{x}_{ik}\textbf{x}_{ik}^T - \sum_{j\in C_i}p_{ij}\textbf{x}_{ij}\textbf{x}_{ij}^T \bigg)
+		\end{align}
+		求得f的偏导之后，计算
+		\begin{align}
+		\textbf{A}=\textbf{A}+\eta \frac{\partial f}{\partial \textbf{A}}
+		\end{align}
+		其中，$\eta$表示学习速率，根据经验设定值。在训练样本时，每次迭代都更新\textbf{A},使\textbf{A}收敛，计算$\textbf{M}=\textbf{A}^T\textbf{A}$，最后将\textbf{M}带入马氏距离求解的公式，计算样本之间的距离，使用k近邻分类器预测样本的标签。求$\frac{\partial f}{\partial \textbf{A}}$的时候，使用随机梯度下降算法，每次迭代，用样本中的一个例子来近似所有的样本\cite{周志华2016机器学习}。
+	\subsection*{实验结果}
+		本次实验在randnca.py文件中实现了名为randnca的类，通过在myDML.py文件中引入并实例化该类，调用对象的train方法即可对训练样本进行训练。测试$\eta$设置为0.03,迭代50000次之后的错误率为：
+		\begin{align*}
+		&k=1\mbox{时} \quad test\_error=0.000000 \\	
+		&k=3\mbox{时} \quad test\_error=0.015000 \\
+		&k=5\mbox{时} \quad test\_error=0.020000 \\
+		\end{align*}		
+		
+		实验证明，在训练超过一定的次数后，通过训练得到的度量矩阵计算马氏距离来预测样本的标签的错误率比通过欧式距离来预测样本的标签要低。
+		
+\section*{任务2}
+	\subsection*{实验结果}
+		通过调用任务1中实现的度量函数，对30个样本集进行训练与测试，每个样本集有1820个训练样本和780个测试样本，汇报test error的均值和标准差。$\eta$设置为0.03,迭代5000次后的结果如下：
+		\begin{align*}
+		baseline+knn(k=1): \quad	0.166880 ± 0.012082 \\
+		myMetric+knn(k=1): \quad	0.132906 ± 0.014434 \\
+		baseline+knn(k=3): \quad	0.206282 ± 0.013218 \\
+		myMetric+knn(k=3): \quad	0.160940 ± 0.018085 \\
+		baseline+knn(k=5): \quad	0.223248 ± 0.013466 \\
+		myMetric+knn(k=5): \quad	0.175897 ± 0.017932 \\
+		\end{align*}
+		$\eta$设置为0.02,迭代10000次后的结果如下：
+		\begin{align*}
+		baseline+knn(k=1): \quad	0.166880 ± 0.012082\\
+		myMetric+knn(k=1): \quad	0.120513 ± 0.013816\\
+		baseline+knn(k=3): \quad	0.206282 ± 0.013218\\
+		myMetric+knn(k=3): \quad	0.145513 ± 0.016387\\
+		baseline+knn(k=5): \quad	0.223248 ± 0.013466\\
+		myMetric+knn(k=5): \quad	0.160085 ± 0.015909\\
+		\end{align*}
+		$\eta$设置为0.01,迭代10000次后的结果如下：
+		\begin{align*}
+		baseline+knn(k=1): \quad	0.166880 ± 0.012082\\
+		myMetric+knn(k=1): \quad	0.102094 ± 0.011555\\
+		baseline+knn(k=3): \quad	0.206282 ± 0.013218\\
+		myMetric+knn(k=3): \quad	0.125598 ± 0.012827\\
+		baseline+knn(k=5): \quad	0.223248 ± 0.013466\\
+		myMetric+knn(k=5): \quad	0.142949 ± 0.011782\\
+		\end{align*}
+		$\eta$设置为0.006,迭代10000次后的结果如下：
+		\begin{align*}
+		baseline+knn(k=1): \quad	0.166880 ± 0.012082\\
+		myMetric+knn(k=1): \quad	0.097607 ± 0.009112\\
+		baseline+knn(k=3): \quad	0.206282 ± 0.013218\\
+		myMetric+knn(k=3): \quad	0.122094 ± 0.011422\\
+		baseline+knn(k=5): \quad	0.223248 ± 0.013466\\
+		myMetric+knn(k=5): \quad	0.138291 ± 0.010730\\
+		\end{align*}
+		
+		
+		实验结果表明，在经过一定的训练过后，使用NCA度量学习方法产生的距离度量方法比使用欧式距离作为k近邻分类器的距离度量方法预测样本标签的效果要好。
+	
+\renewcommand\refname{参考文献}
+\bibliographystyle{plain}
+\bibliography{ReadMe}	
+
+\end{document}
