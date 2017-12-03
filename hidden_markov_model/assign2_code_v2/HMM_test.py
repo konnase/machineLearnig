@@ -19,6 +19,7 @@ num_correct=0.0
 test_window = 6
 N=len(all_data)
 num_tests=N/test_window
+print("start")
 for n in xrange(1,N-test_window,test_window):
     train_data = all_data[-n:-n-test_window:-1,:]
     hist_moves = myHMM.calculateDailyMoves(train_data,1)
@@ -26,6 +27,7 @@ for n in xrange(1,N-test_window,test_window):
     hist_O=hist_O[::-1]
     (a, b, pi_est, alpha_est) = hmm.HMMBaumWelch(hist_O, 2, False, False)
     path = hmm.HMMViterbi(a, b, hist_O, pi_est)
+    #path = np.zeros(len(hist_O))
     prediction_state=np.argmax(a[int(path[-1]),:])
     prediction = np.argmax(b[prediction_state,:])
     if ((all_data[-n-test_window-1,1]-all_data[-n-test_window,1])>0 and prediction==1) or ((all_data[-n-test_window-1,1]-all_data[-n-test_window,1])<0 and prediction==0) or ((all_data[-n-test_window-1,1]-all_data[-n-test_window,1])==0 and prediction==2):
