@@ -6,6 +6,9 @@
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{amsthm}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{cite}
 %\usepackage[thmmarks, amsmath, thref]{ntheorem}
 \theoremstyle{definition}
 \newtheorem*{solution}{Solution}
@@ -51,7 +54,7 @@ $STATE\_NUM[i]$表示自定义的第i维状态的离散状态数目。
 	&state\_index = \\
 	&(observation[i] - STATE\_THRESHOLD[i])/bound\_width * STATE\_NUM[i]
 \end{align*}
-通过状态空间离散化，即将连续的观测空间状态转换到离散的空间上来，我们即可使用Q-learning算法进行强化学习。
+通过状态空间离散化，即将连续的观测空间状态转换到离散的空间上来，我们即可使用Q-learning算法进行强化学习[1]。
 
 Q-learning算法实现的思路如下：
 \begin{itemize}
@@ -80,9 +83,10 @@ Q-learning算法实现的思路如下：
 认为已经收敛，则终止片段循环）。每个状态维度的可操作状态数设置为(1, 1, 1, 1, 10, 10)，表示只考虑两个杆子的角速度，
 忽略它们的角度。虽然损失两个状态，但对解决Acrobot问题不会产生影响。
 
-对三个强化学习任务分别进行5次实验，得到多条轨迹上reward的均值和标准差：
-\leftline{CartPole：}
-
+对三个强化学习任务分别进行5次实验，得到多条轨迹上reward的均值和标准差，见表1.
+\begin{table}[!htbp]
+	\centering
+	\caption{均值标准差}
 	\begin{tabular}{|c|c|c|c|c|c|}
 	
 		\hline
@@ -102,8 +106,6 @@ Q-learning算法实现的思路如下：
 		\hline
 	
 	\end{tabular}
-	
-\leftline{MountainCar：}
 
 	\begin{tabular}{|c|c|c|c|c|c|}
 	
@@ -124,8 +126,6 @@ Q-learning算法实现的思路如下：
 		\hline
 	
 	\end{tabular}
-	
-\leftline{Acrobot：}
 
 	\begin{tabular}{|c|c|c|c|c|c|}
 	
@@ -146,6 +146,7 @@ Q-learning算法实现的思路如下：
 		\hline
 	
 	\end{tabular}
+\end{table}
 
 \section*{实验三. }
 由于 Q-learning 需要穷举状态-动作对，所以面对连续状态-动作空间， Q-learning 无法适用。但是值函数近似 Q-learning 方法能够解决此类问题。
@@ -160,8 +161,8 @@ Q 函数的学习问题转化为了如何学习一组深度网络参数 $\theta$
 这里设置N=2000，设置损失函数为PyTorch提供的nn.MSELoss()函数，即平方损失函数，公式如下：
 $$loss(x, y) = \frac{1}{N} \sum_{i=1}^N |x - y|^2$$
 使用torch.optim.Adam()作为学习的优化器，它利用梯度的一阶矩估计和二阶矩估计动态调整每个参数的学习率，
-参数为Q-evaluation网络，学习率$\alpha$的初始值设为0.008；
-探索率$\epsilon$初始设置为1，最小值设置为0.01，随片段episode的增加呈指数级别减小；衰减值$\gamma$设置为0.99恒定不变；
+参数为Q-evaluation网络，学习率为$\alpha$，不同的任务学习率不同；
+探索率$\epsilon$初始设置为1，最小值设置为0.01，随片段episode的增加呈指数级别减小；
 算法中每次从memory中抽取的MINI\_BATCH数目为32。
 
 DQN算法实现思路如下：
@@ -179,136 +180,158 @@ DQN算法实现思路如下：
 	\item 将$y_j$和$Q(s_j, a; \theta)$带入损失函数，修正$\theta$
 \end{itemize}
 
-针对CartPole任务，最大观测长度设置为20000，片段数设置为200（实验发现，在执行200次片段过后就接近收敛）。输入层神经元个数为4，表示4个可观测状态；
+针对CartPole任务，最大观测长度设置为20000，片段数设置为300。输入层神经元个数为4，表示4个可观测状态；
 隐藏层神经元个数为50；输出层神经元个数为2。同时，需要修改reward的值，使状态动作函数尽快收敛，修改思路如下：
 考虑小车的位置离中点越近reward值越高、杆子越保持垂直reward值越高。
+学习率$\alpha$的初始值设为0.008；
+衰减值$\gamma$设置为0.9恒定不变；
 
-针对MountainCar任务，最大观测长度设置为2000，片段数设置为400（考虑到接近收敛的时候，基本都能保证小车到达旗杆处，故设置在连续300次成功解决MountainCar问题后就
-认为已经收敛，则终止片段循环）。输入层神经元个数为2，表示2个可观测状态；隐藏层神经元个数为25；输出层神经元个数为3。
+针对MountainCar任务，最大观测长度设置为2000，片段数设置为1000（考虑到接近收敛的时候，基本都能保证小车到达旗杆处，
+故设置在连续100次成功解决MountainCar问题后就认为已经收敛，则终止片段循环）。
+输入层神经元个数为2，表示2个可观测状态；隐藏层神经元个数为30；输出层神经元个数为3。
 修改reward值：小车离坡道最低点越远reward值越高、一旦小车达到最高点则给一个较大的reward。
+学习率$\alpha$的初始值设为0.005；
+衰减值$\gamma$设置为0.85恒定不变；
 
 针对Acrobot任务，最大观测长度设置为2000，片段数设置为300。输入层神经元个数为6，表示6个可观测状态；
-隐藏层神经元个数为50；输出层神经元个数为2。该任务没有修改reward值，利用系统给定的reward值就能很好的完成强化学习。
+隐藏层神经元个数为50；输出层神经元个数为2。修改reward值：只要机械臂达到给定的高度，系统将返回reward=0，
+此时我们将reward修改为一个较大的值。
+学习率$\alpha$的初始值设为0.005；
+衰减值$\gamma$设置为0.75恒定不变；
 
-网络训练误差随训练轮数的变化关系：
+网络训练误差随训练轮数的变化关系见图1.
 \begin{figure}
 	\centering                                                          %居中                  %第一张子图
-	\begin{minipage}{7cm}
+	\begin{minipage}{5cm}
 		\centering                                                          %子图居中
-		\includegraphics[scale=0.5]{exper4_cartpole_loss1.png}               %以pic.jpg的0.5倍大小输出
+		\includegraphics[width = 5cm]{exper4_cartpole_loss1.png}               %以pic.jpg的0.5倍大小输出
+		\caption*{CartPole}
 	\end{minipage}
 				%第二张子图
-	\begin{minipage}{7cm}
+	\begin{minipage}{5cm}
 		\centering                                                          %子图居中
-		\includegraphics[scale=0.4]{exper4_mountaincar_loss.png}                %以pic.jpg的0.5倍大小输出
+		\includegraphics[width = 5cm]{exper4_mountaincar_loss.png}                %以pic.jpg的0.5倍大小输出
+		\caption*{MountainCar}
 	\end{minipage}
 
-	\begin{minipage}{7cm}
+	\begin{minipage}{5cm}
 		\centering                                                          %子图居中
-		\includegraphics[scale=0.4]{exper4_acrobot_loss.png}                %以pic.jpg的0.5倍大小输出
+		\includegraphics[width = 5cm]{exper4_acrobot_loss.png}                %以pic.jpg的0.5倍大小输出
+		\caption*{Acrobot}
 	\end{minipage}}
 	\caption{loss比较} %                         %大图名称
 	\label{fig:1} 
 \end{figure}
 
-对三个强化学习任务分别进行5次实验，得到多条轨迹上reward的均值和标准差：
-\leftline{CartPole：}
+每轮训练reward之和随训练轮数的变化关系随训练轮数的变化关系见图2
+\begin{figure}
+	\centering                                                          %居中                  %第一张子图
+	\begin{minipage}{5cm}
+		\centering                                                          %子图居中
+		\includegraphics[width = 5cm]{exper4_cartpole_reward.png}               %以pic.jpg的0.5倍大小输出
+		\caption*{CartPole}
+	\end{minipage}
+				%第二张子图
+	\begin{minipage}{5cm}
+		\centering                                                          %子图居中
+		\includegraphics[width = 5cm]{exper4_mountaincar_reward.png}                %以pic.jpg的0.5倍大小输出
+		\caption*{MountainCar}
+	\end{minipage}
 
+	\begin{minipage}{5cm}
+		\centering                                                          %子图居中
+		\includegraphics[width = 5cm]{exper4_acrobot_reward.png}                %以pic.jpg的0.5倍大小输出
+		\caption*{Acrobot}
+	\end{minipage}}
+	\caption{reward比较} %                         %大图名称
+	\label{fig:1} 
+\end{figure}
+
+对三个强化学习任务分别进行5次实验，得到多条轨迹上reward的均值和标准差，见表2.
+
+\begin{table}[!htbp]
+	\centering
+	\caption{均值标准差}
 	\begin{tabular}{|c|c|c|c|c|c|}
 	
 		\hline
 		
 		\hline
 		
-		- & 1 & 2 & 3 & 4 & 5 \\
+		CartPole & 1 & 2 & 3 & 4 & 5 \\
 		
 		\hline
 		
-		均值 & 19667.55 & 19575.45 & 19489.12 & 19456.23 & 19535.27\\
+		均值 & 1079.10 & 20000.0 & 1505.11 & 2832.19 & 1210.64\\
 
 		\hline
 
-		标准差 & 1953.69 & 2357.74 & 2471.89 & 2001.16 & 1959.57\\
+		标准差 & 95.29 & 0 & 144.00 & 302.37 & 73.14\\
 		
 		\hline
 	
 	\end{tabular}
 	
-\leftline{MountainCar：}
-
 	\begin{tabular}{|c|c|c|c|c|c|}
 	
 		\hline
 		
 		\hline
 		
-		- & 1 & 2 & 3 & 4 & 5 \\
+		MountainCar & 1 & 2 & 3 & 4 & 5 \\
 		
 		\hline
 		
-		均值 & -135.28 & -134.68 & -147.42 & -133.76 & -145.34\\
+		均值 & -235.35 & -227.41 & -244.09 & -213.23 & -236.48\\
 
 		\hline
 
-		标准差 & 34.46 & 36.66 & 26.81 & 33.58 & 65.38\\
+		标准差 & 73.47 & 99.30 & 92.47 & 64.48 & 75.38\\
 		
 		\hline
 	
 	\end{tabular}
 	
-\leftline{Acrobot：}
-
 	\begin{tabular}{|c|c|c|c|c|c|}
 	
 		\hline
 		
 		\hline
 		
-		- & 1 & 2 & 3 & 4 & 5 \\
+		Acrobot & 1 & 2 & 3 & 4 & 5 \\
 		
 		\hline
 		
-		均值 & -112.25 & -103.86 & -103.35 & -108.71 & -151.89\\
+		均值 & -200.87 & -152.51 & -183.53 & -311.80 & -346.57\\
 
 		\hline
 
-		标准差 & 42.20 & 33.14 & 42.01 & 49.26 & 129.11\\
+		标准差 & 107.78 & 40.08 & 77.10 & 232.30 & 159.13\\
 		
 		\hline
 	
 	\end{tabular}
+\end{table}
+	从图中看出，DQN算法在学习的时候稳定性较差，波动幅度很大；而且从表格中可以看出，在CartPole任务中，对于
+	某次训练效果很好的Q网络，CartPole任务可以坚持很久；而对训练效果不好的Q网络，CartPole任务很快便结束。
+	而事实上，DQN算法的效果甚至还不如Q-learning算法的效果（参数可能影响了实验结果）。
 
 \section*{实验四. }
-由于 Q-learning 需要穷举状态-动作对，所以面对连续状态-动作空间， Q-learning 无法适用。但是值函数近似 Q-learning 方法能够解决此类问题。
-若将值函数近似模型选取为一个深度网络，即为 Deep Q-learning (DQN) 算法。DQN 算法基于 Q-learning，算法框架和 Q-learning 完全相同，不同之处在于 Q 函数 的表示和更新方式上。
-DQN 中 Q 函数用一个深度网络表示，记为 Q(s, a; $\theta$)，其中 s 表示 状态，a 表示执行的动作，$\theta$ 表示网络参数。DQN 的目的是得到一个 Q 函数网络，对于一 组状态动作对 (s, a)，
-使得 Q 函数网络的输出 Q(s, a; $\theta$) 等于 (s, a) 下真实的 Q 值。具体到 深度网络表示的 Q 函数模型上，
-Q 函数的学习问题转化为了如何学习一组深度网络参数 $\theta$ 使网络输出近似于真实的 Q 值。
+在 DQN 中，每在任务环境中探索一步均要更新一次网络权重，
+研究者指出 这样的更新方式是不稳定的，对学习 Q 值网络不利。故需要对原来的DQN算法进行改进。
+引入Q-target网络，因为在DQN算法中目标Q网络是随着Q网络的更新而变化的，
+这样会造成目标Q值和当前的Q值得相关性较大。本次实验中，引入Q-target网络，
+每隔一段时间更新该Q-target网络，提升强化学习的稳定性。
 	
-本次实验中，我们采用PyTorch提供的神经网络模型建立我们所需的Q-target网络和Q-evaluation网络，输入层神经元数目为可观测的状态数目；
-隐藏层有一层，这里设置隐藏层有$hidden\_num$个神经元（$hidden\_num$由具体的任务指定，如CartPole的$hidden\_num$设为50）；输出层的神经元个数为动作的数目。
-新建一个DQN类，表示我们将要实现的算法，私有属性memory表示大小为N的重现内存，
-这里设置N=2000，设置损失函数为PyTorch提供的nn.MSELoss()函数，即平方损失函数，公式如下：
-$$loss(x, y) = \frac{1}{N} \sum_{i=1}^N |x - y|^2$$
-使用torch.optim.Adam()作为学习的优化器，它利用梯度的一阶矩估计和二阶矩估计动态调整每个参数的学习率，
+本次实验中，我们采用PyTorch提供的神经网络模型建立我们所需的Q-target网络和Q-evaluation网络；
 参数为Q-evaluation网络，学习率$\alpha$的初始值设为0.008；
 探索率$\epsilon$初始设置为1，最小值设置为0.01，随片段episode的增加呈指数级别减小；衰减值$\gamma$设置为0.99恒定不变；
 Q-target更新频率设置为每学习100次更新一次；算法中每次从memory中抽取的MINI\_BATCH数目为32。
 
-DQN算法实现思路如下：
-\begin{itemize}
-	\item 初始化大小为(N x (状态数+2))的memory矩阵。
-	\item 新建Q-target网络和Q-evaluation网络，即完成状态动作函数的初始化。
-	\item 对每一个片段执行以下操作：
-	\item 初始化状态s
-	\item 对每一个片段里的每一个步骤执行以下操作：
-	\item 在状态s使用$\epsilon$ 贪心策略选出动作$a_t$
-	\item 执行动作$a_t$，得到奖励$r_t$和下一个状态$s_{t+1}$
-	\item 将($s_t$, $a_t$, $r_t$, $s_{t+1}$)存入memory中
-	\item 从memory中随机抽取MINI\_BATCH个数据
-	\item 对抽取到的每个数据计算$y_i = r_j + \gamma max_{a^`} Q(s_{t+1}, a^`; \theta)$
-	\item 将$y_j$和$Q(s_j, a; \theta)$带入损失函数，修正$\theta$
-\end{itemize}
+改进的DQN算法实现思路与DQN算法的实现思路类似，只是加入了一个Q-target网络，在修正网络参数$\theta$的时候，
+改为从Q-target网络中获取下一个reward最大的动作，并设计每隔一段时间更新Q-target网络。
+
+
 
 针对CartPole任务，最大观测长度设置为20000，片段数设置为200（实验发现，在执行200次片段过后就接近收敛）。输入层神经元个数为4，表示4个可观测状态；
 隐藏层神经元个数为50；输出层神经元个数为2。同时，需要修改reward的值，使状态动作函数尽快收敛，修改思路如下：
@@ -319,40 +342,71 @@ DQN算法实现思路如下：
 修改reward值：小车离坡道最低点越远reward值越高、一旦小车达到最高点则给一个较大的reward。
 
 针对Acrobot任务，最大观测长度设置为2000，片段数设置为300。输入层神经元个数为6，表示6个可观测状态；
-隐藏层神经元个数为50；输出层神经元个数为2。该任务没有修改reward值，利用系统给定的reward值就能很好的完成强化学习。
+隐藏层神经元个数为75；输出层神经元个数为2。该任务没有修改reward值，利用系统给定的reward值就能很好的完成强化学习。
 
-网络训练误差随训练轮数的变化关系：
+网络训练误差随训练轮数的变化关系如图3所示
 \begin{figure}
 	\centering                                                          %居中
                   %第一张子图
-	\begin{minipage}{7cm}\centering                                                          %子图居中
-	\includegraphics[scale=0.5]{exper3_cartpole_loss.png}               %以pic.jpg的0.5倍大小输出
+	\begin{minipage}{5cm}
+		\centering                                                          %子图居中
+		\includegraphics[width = 5cm]{exper3_cartpole_loss.png}               %以pic.jpg的0.5倍大小输出
+		\caption*{CartPole}
 	\end{minipage}
 				%第二张子图
-	\begin{minipage}{7cm}
+	\begin{minipage}{5cm}
 		\centering                                                          %子图居中
-		\includegraphics[scale=0.4]{exper3_mountaincar_loss.png}                %以pic.jpg的0.5倍大小输出
+		\includegraphics[width = 5cm]{exper3_mountaincar_loss.png}                %以pic.jpg的0.5倍大小输出
+		\caption*{MountainCar}
 	\end{minipage}
 
-	\begin{minipage}{7cm}
+	\begin{minipage}{5cm}
 		\centering                                                          %子图居中
-		\includegraphics[scale=0.4]{exper3_acrobot_loss.png}                %以pic.jpg的0.5倍大小输出
+		\includegraphics[width = 5cm]{exper3_acrobot_loss.png}                %以pic.jpg的0.5倍大小输出
+		\caption*{Acrobot}
 	\end{minipage}}
 
-	\caption{name of the figure} %                         %大图名称
+	\caption{loss比较} %                         %大图名称
 	\label{fig:2} 
 \end{figure}
 
-对三个强化学习任务分别进行5次实验，得到多条轨迹上reward的均值和标准差：
-\leftline{CartPole：}
+每轮训练reward之和随训练轮数的变化关系随训练轮数的变化关系如图4所示
+\begin{figure}
+	\centering                                                          %居中
+                  %第一张子图
+	\begin{minipage}{5cm}
+		\centering                                                          %子图居中
+		\includegraphics[width = 5cm]{exper3_cartpole_reward.png}               %以pic.jpg的0.5倍大小输出
+		\caption*{CartPole}
+	\end{minipage}
+				%第二张子图
+	\begin{minipage}{5cm}
+		\centering                                                          %子图居中
+		\includegraphics[width = 5cm]{exper3_mountaincar_reward.png}                %以pic.jpg的0.5倍大小输出
+		\caption*{MountainCar}
+	\end{minipage}
 
+	\begin{minipage}{5cm}
+		\centering                                                          %子图居中
+		\includegraphics[width = 5cm]{exper3_acrobot_reward.png}                %以pic.jpg的0.5倍大小输出
+		\caption*{Acrobot}
+	\end{minipage}}
+
+	\caption{reward比较} %                         %大图名称
+	\label{fig:2} 
+\end{figure}
+
+对三个强化学习任务分别进行5次实验，得到多条轨迹上reward的均值和标准差，见表3.
+\begin{table}[!htbp]
+	\centering
+	\caption{均值标准差}
 	\begin{tabular}{|c|c|c|c|c|c|}
 	
 		\hline
 		
 		\hline
 		
-		- & 1 & 2 & 3 & 4 & 5 \\
+		CartPole & 1 & 2 & 3 & 4 & 5 \\
 		
 		\hline
 		
@@ -366,15 +420,13 @@ DQN算法实现思路如下：
 	
 	\end{tabular}
 	
-\leftline{MountainCar：}
-
 	\begin{tabular}{|c|c|c|c|c|c|}
 	
 		\hline
 		
 		\hline
 		
-		- & 1 & 2 & 3 & 4 & 5 \\
+		MountainCar & 1 & 2 & 3 & 4 & 5 \\
 		
 		\hline
 		
@@ -388,15 +440,13 @@ DQN算法实现思路如下：
 	
 	\end{tabular}
 	
-\leftline{Acrobot：}
-
 	\begin{tabular}{|c|c|c|c|c|c|}
 	
 		\hline
 		
 		\hline
 		
-		- & 1 & 2 & 3 & 4 & 5 \\
+		Acrobot & 1 & 2 & 3 & 4 & 5 \\
 		
 		\hline
 		
@@ -409,5 +459,16 @@ DQN算法实现思路如下：
 		\hline
 	
 	\end{tabular}
+\end{table}
+
+通过实验数据我们可以看出，改进后的DQN算法在稳定性和性能上都比原始的DQN算法要好，特别是在CartPole任务中，
+改进后的DQN基本能保证一条轨迹执行20000步后结束，而且其他两个任务完成所花费的步数也比原始的DQN算法训练出来的
+结果要好。改进后的DQN之所以能增加Q值训练的稳定性，主要是因为改进后的DQN算法增加了Q-target网络，该网络
+只在一段时间间隔后更新，而不用像原始的Q网络一样需要每次都更新，这样在代入损失函数修正网络参数$\theta$的时候，
+降低了Q值与当前数据的相关性。所以改进后的DQN相比于原始的DQN具有更好的稳定性。
+
+\section*{参考文献}
+
+[1] 周志华. 机器学习. 清华大学出版社, 2016.
 
 \end{document}

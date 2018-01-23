@@ -11,10 +11,10 @@ from matplotlib import pyplot as plt
 
 global EPSILON
 MINI_BATCH = 32
-ALPHA = 0.005                  
+ALPHA = 0.008                  
 EPSILON = 1               
-GAMMA = 0.75                 
-#TARGET_UPDATE_FREQUENCY = 100   # q target 更新频率
+GAMMA = 0.99                 
+TARGET_UPDATE_FREQUENCY = 100   # q target 更新频率
 MEMORY_CAPACITY = 2000
 
 class Net(nn.Module):
@@ -34,9 +34,9 @@ class Net(nn.Module):
 
 class DQN(object):
     def __init__(self, STATE_NUM, ACTION_NUM, ENV_A_SHAPE, hidden_num):
-        self.eval_net = Net(STATE_NUM, ACTION_NUM, hidden_num)
+        self.eval_net, self.target_net = Net(STATE_NUM, ACTION_NUM, hidden_num), Net(STATE_NUM, ACTION_NUM, hidden_num)
 
-        self.learn_count = 0   #
+        self.learn_count = 0   #用于q target的更新
         self.memery_count = 0        #记录memory中存储了多少条记录了
         self.memory = np.zeros((MEMORY_CAPACITY, STATE_NUM * 2 + 2))     # 初始化memory
         self.optimizer = torch.optim.Adam(self.eval_net.parameters(), lr=ALPHA)
@@ -67,6 +67,10 @@ class DQN(object):
         self.memery_count += 1
 
     def learn(self):
+        # target 参数更新
+        if self.learn_count % TARGET_UPDATE_FREQUENCY == 0:
+            self.target_net.load_state_dict(self.eval_net.state_dict())
+        self.learn_count += 1
 
         # Sample random mini-batch of transitions
         sample_index = np.random.choice(MEMORY_CAPACITY, MINI_BATCH)
@@ -78,7 +82,7 @@ class DQN(object):
 
         # 梯度下降法更新theata
         q_eval = self.eval_net(b_s).gather(1, b_a)  # shape (batch, 1)
-        q_next = self.eval_net(b_s_).detach()     # detach from graph, don't backpropagate
+        q_next = self.target_net(b_s_).detach()     # detach from graph, don't backpropagate
         q_target = b_r + GAMMA * q_next.max(1)[0].view(MINI_BATCH, 1)   # shape (batch, 1)
         loss = self.loss_func(q_eval, q_target)
         self.loss += float(loss.data)
@@ -103,7 +107,7 @@ def cartpole():
     STATE_NUM = env.observation_space.shape[0]
     #print (STATE_NUM)
     ENV_A_SHAPE = 0 if isinstance(env.action_space.sample(), int) else env.action_space.sample().shape     # to confirm the shape
-    NUM_EPISODES = 300
+    NUM_EPISODES = 200
     MAX_T = 20000
     STREAK_TO_END = 50
     FINAL_T = 199
@@ -141,18 +145,17 @@ def cartpole():
                     #result.append(reward)
                     print('Episode: ', i_episode,' reward: ', reward, ' t: ', t)
                     break
-            # if (t >= FINAL_T):
-            #     streaks += 1
-            # else:
-            #     streaks = 0
-            # if t==MAX_T - 1:
-            #     result.append(reward)
+            if (t >= FINAL_T):
+                streaks += 1
+            else:
+                streaks = 0
+            if t==MAX_T - 1:
+                result.append(reward)
             if done:
-                # result.append(reward)
+                result.append(reward)
                 break
             train_t.append(t)
             s = s_dot
-        result.append(reward)
         train_loss.append(dqn.get_loss()/train_t[-1])
         if streaks > STREAK_TO_END:
             print("cartpole finished streaks:", streaks)
@@ -172,7 +175,7 @@ def cartpole():
     print('test start!')
     #test
     env = env.unwrapped
-    #env = wrappers.Monitor(env, '/tmp/cartpole-3', force=True)
+    env = wrappers.Monitor(env, '/tmp/cartpole-3', force=True)
     result = []
     ts = []
     for i_episode in range(NUM_EPISODES):
@@ -210,10 +213,10 @@ def mountaincar():
     STATE_NUM = env.observation_space.shape[0]
     #print (STATE_NUM)
     ENV_A_SHAPE = 0 if isinstance(env.action_space.sample(), int) else env.action_space.sample().shape     # to confirm the shape
-    NUM_EPISODES = 1000
+    NUM_EPISODES = 400
     MAX_T = 2000
-    STREAK_TO_END = 100
-    hidden_num = 30
+    STREAK_TO_END = 300
+    hidden_num = 25
     dqn = DQN(STATE_NUM, ACTION_NUM, ENV_A_SHAPE, hidden_num)
 
     #train
@@ -305,7 +308,7 @@ def mountaincar():
 
 def acrobot():
     env = gym.make('Acrobot-v1')
-    env = env.unwrapped
+    # env = env.unwrapped
     print(env.observation_space.high[0])
     global EPSILON
     EPSILON = 1
@@ -315,14 +318,13 @@ def acrobot():
     ENV_A_SHAPE = 0 if isinstance(env.action_space.sample(), int) else env.action_space.sample().shape     # to confirm the shape
     NUM_EPISODES = 300
     MAX_T = 2000
-    STREAK_TO_END = 100
-    hidden_num = 50
+    STREAK_TO_END = 200
+    hidden_num = 75
     dqn = DQN(STATE_NUM, ACTION_NUM, ENV_A_SHAPE, hidden_num)
 
     #train
     train_loss =[]
     result = []
-
     streaks = 0
     for i_episode in range(NUM_EPISODES):
         s = env.reset()
@@ -334,7 +336,6 @@ def acrobot():
             a = dqn.get_action(s)
             s_dot, r, done, info = env.step(a)
 
-            reward += r
             # 修改reward值
             # x, x_dot = s_dot
             # if x > 0.5:
@@ -343,12 +344,10 @@ def acrobot():
             #     r1 = (abs(x - (-0.5))) - 0.2
             # r2 = abs(x_dot) * 5
             # r = r1 
-            if r == 0:
-                r = 100
 
             dqn.store_transition(s, a, r, s_dot)
 
-            
+            reward += r
             if dqn.memery_count > MEMORY_CAPACITY:
                 #env.render()
                 dqn.learn()
@@ -356,10 +355,8 @@ def acrobot():
                     #result.append(reward)
                     print('Episode: ', i_episode,' reward: ', reward, 't:', t)
 
-            if t == MAX_T - 1:
-                end_flag = False
             if done:
-                end_flag = True
+                end_flag = False
                 streaks += 1
                 break
             s = s_dot
@@ -371,7 +368,7 @@ def acrobot():
         if streaks > STREAK_TO_END:
             print('Acrobot finished')
             break
-        print('one episode finished!',i_episode)
+        print('one episode finished!')
         EPSILON = max(0.01, min(1, 1.0 - math.log10((i_episode+1)/25.0)))
     
     plt.plot(train_loss)
@@ -385,7 +382,7 @@ def acrobot():
     plt.show()
     
     #test
-    #env = env.unwrapped
+    env = env.unwrapped
     result = []
     for i_episode in range(NUM_EPISODES):
         s = env.reset()
@@ -403,11 +400,10 @@ def acrobot():
                 result.append(reward)
                 break
             s = s_dot
-        print('episode:',i_episode)
     print("mean reward:", np.mean(result))
     print("standard deviation:", np.std(result))
 
 if __name__ == '__main__':
-    # cartpole()
+    cartpole()
     # mountaincar()
-    acrobot()
+    # acrobot()
